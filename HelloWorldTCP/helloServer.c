@@ -1,6 +1,6 @@
 #define SERVER_TCP_PORT 8000
 #define BUFLEN 256 
-#define MESSAGE "Hello"
+
 
 #include <stdio.h>
 #include <arpa/inet.h>
@@ -17,6 +17,7 @@ int main(int argc, char** argv){
     int sd, new_sd, client_len, port;
     struct sockaddr_in server, client;
     char buffer[BUFLEN];
+    char* message = "hello";
     
     if(argc == 2){
         port = atoi(argv[1]);
@@ -64,8 +65,9 @@ int main(int argc, char** argv){
             perror("Can't accept client \n");
             exit(EXIT_FAILURE);
         }
-        bytes_written = (new_sd, MESSAGE, strlen(MESSAGE),0);
-        if(bytes_written >= 20){
+        sleep(2);
+        bytes_written = send(new_sd, message, strlen(message),0);
+        if(bytes_written >= 5){
             close(new_sd);
             break;
         }

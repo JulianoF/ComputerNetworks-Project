@@ -56,12 +56,10 @@ int main(int argc, char** argv){
     printf("Waiting for Data..\n");
     while(1){
         ssize_t status = read(sd, buffer, sizeof(buffer));
-        if(status == 0){
+        if(status <= 0){
             break;
-        }else{
-            printf("Message from Server: %s", buffer);
         }
-
+        printf("Message from Server: %s", buffer);
     }
     close(sd);
     return 0;
