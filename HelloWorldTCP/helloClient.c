@@ -39,14 +39,7 @@ int main(int argc, char** argv){
     server.sin_port = htons(port);
     server.sin_addr.s_addr = inet_addr(IP);
 
-    if(bind(sd, (struct sockaddr *)&server, sizeof(server)) < 0){
-        perror("Can't bind name to socket\n");
-        exit(EXIT_FAILURE);
-    }else{
-        printf("Socket successfully binded\n");
-    }
-       // connect the client socket to server socket
-    if (connect(sd, (struct sockaddr *)&server, sizeof(server)) != 0) {
+    if (connect(sd, (struct sockaddr*)&server, sizeof(server)) < 0) {
         perror("connection with the server failed\n");
         exit(EXIT_FAILURE);
     }else{
@@ -59,7 +52,7 @@ int main(int argc, char** argv){
         if(status <= 0){
             break;
         }
-        printf("Message from Server: %s", buffer);
+        printf("Message from Server: %s \n", buffer);
     }
     close(sd);
     return 0;

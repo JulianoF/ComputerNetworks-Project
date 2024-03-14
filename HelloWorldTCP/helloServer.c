@@ -66,8 +66,8 @@ int main(int argc, char** argv){
             exit(EXIT_FAILURE);
         }
         sleep(2);
-        bytes_written = send(new_sd, message, strlen(message),0);
-        if(bytes_written >= 5){
+        bytes_written = write(new_sd, message, strlen(message));
+        if(bytes_written == strlen(message)){
             close(new_sd);
             break;
         }
