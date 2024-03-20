@@ -35,10 +35,65 @@ int initServer(int port, char* ip){
     return sd;
 }
 
-void acceptClient(int sd){
+int acceptClient(int sd){
+    int client_sd, client_len;
+    client_len = sizeof(client);
 
+    client_sd = accept(sd, (struct sockaddr *)&client, &client_len);
+    if(client_sd < 0){
+        perror("Can't accept client \n");
+        return -1;
+    }
+    printf("Client connected from %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+
+    while(1){
+        printf("Waiting for Filename From Client\n");
+        char *fromUser = handleFilename(client_sd);
+        if (fromUser != NULL) {
+            printf("Processing filename: %s\n", fromUser);
+            
+        } else {
+            printf("Failed to receive filename.\n");
+            break;
+            // Handle the error accordingly
+        }
+    }
+    
+
+    close(client_sd);
+    return client_sd; 
 }
+
+char* handleFilename(int client_sd){
+    char* filename; 
+    filename = malloc(sizeof(char) * 256);
+    if (filename == NULL) {
+        perror("malloc");
+        return NULL;
+    }
+    int recv_bytes = recv(client_sd, filename, sizeof(filename)*256, 0);
+    if (recv_bytes < 0) {
+        perror("recv");
+        free(filename);
+        return NULL;
+    }else if(recv_bytes == 0){
+        printf("Client disconnected\n");
+        free(filename);
+        return NULL;
+    }
+    
+    filename[recv_bytes] = '\0';
+    printf("Received Filename: %s\n", filename);
+
+    return filename;
+}
+
+
 
 void closeServer(int sd){
     close(sd);
+}
+
+void closeClient(int client_sd){
+    close(client_sd);
 }

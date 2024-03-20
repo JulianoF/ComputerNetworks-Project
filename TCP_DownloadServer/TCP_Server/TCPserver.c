@@ -11,7 +11,7 @@
 
 int main(int argc, char** argv){
     char* ip;
-    int port, sd;
+    int port, sd, client_sd;
     
     switch(argc){
         case 2:
@@ -33,7 +33,7 @@ int main(int argc, char** argv){
             ip = LOOPBACK_IP;
     }
 
-    //printf("PORT: %d  IP: %s \n",port,ip);
+    printf("PORT: %d  IP: %s \n",port,ip);
 
     sd = initServer(port,ip);
     if(sd < 0){
@@ -41,7 +41,15 @@ int main(int argc, char** argv){
         closeServer(sd);
         exit(1);
     }
-
+    while(1){
+        client_sd = acceptClient(sd);
+        if(client_sd<0){
+            break;
+        }
+        break;
+    }
+    
+    closeClient(client_sd);
     closeServer(sd);
     return 0;    
 }
