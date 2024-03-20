@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS= -Wall -Wextra 
-DEPS = 
-OBJ = TCPserver.c
+DEPS =  ConnectionLib.h FileLib.h
+OBJ = TCPserver.c ConnectionLib.c FileLib.c
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)

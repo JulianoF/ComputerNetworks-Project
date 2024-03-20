@@ -2,21 +2,16 @@
 #define LOOPBACK_IP "127.0.0.1"
 
 #include <stdio.h>
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <sys/signal.h>
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "ConnectionLib.h"
+
 int main(int argc, char** argv){
     char* ip;
-    int sd, new_sd, client_len, port;
-    struct sockaddr_in server, client;
-
+    int port, sd;
     
     switch(argc){
         case 2:
@@ -40,5 +35,13 @@ int main(int argc, char** argv){
 
     //printf("PORT: %d  IP: %s \n",port,ip);
 
+    sd = initServer(port,ip);
+    if(sd < 0){
+        printf("Server Failure Shutting down\n");
+        closeServer(sd);
+        exit(1);
+    }
+
+    closeServer(sd);
     return 0;    
 }
