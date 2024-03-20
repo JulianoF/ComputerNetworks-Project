@@ -54,3 +54,7 @@ dkms.conf
 # Project Files
 helloServer
 helloClient
+TCP-Server
+TCP-Client
+UDP-Server
+UDP-Client
