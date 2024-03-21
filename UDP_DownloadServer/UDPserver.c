@@ -8,6 +8,9 @@
 #define BUFLEN 512  // Max length of buffer
 #define PORT 8888   // The port on which to listen for incoming data
 
+// Source code imports
+#include "core/filemanip.h"
+
 void killserver(char *s) {
     perror(s);
     exit(1);
@@ -46,12 +49,17 @@ int main(void) {
             killserver("recvfrom()");
         }
         
+        struct pdu received_pdu;
+        received_pdu.type = buf[0]; // First byte is type
+        memcpy(received_pdu.data, buf + 1, recv_len - 1); // The rest is data
+        
         // Print details of the client/peer and the data received
         printf("Received packet from %s:%d\n", inet_ntoa(incoming_socket_ADDR.sin_addr), ntohs(incoming_socket_ADDR.sin_port));
-        printf("Data: %s\n" , buf);
+        printf("PDU Type: %c\n", received_pdu.type);
+        printf("PDU Data: %.*s\n", recv_len - 1, received_pdu.data);
         
         // Now reply to the client with the same data
-        if (sendto(s, buf, recv_len, 0, (struct sockaddr*) &incoming_socket_ADDR, alen) == -1) {
+        if (sendto(s, &received_pdu, sizeof(received_pdu), 0, (struct sockaddr*) &incoming_socket_ADDR, alen) == -1) {
             killserver("sendto()");
         }
     }
