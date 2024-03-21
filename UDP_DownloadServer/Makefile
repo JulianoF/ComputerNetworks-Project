@@ -21,6 +21,11 @@ all: UDP-Client UDP-Server
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
+# DEBUG BUILDING:
+
+debug: CFLAGS += -g
+debug: all
+
 # Clean command for cleanup
 .PHONY: clean
 clean:

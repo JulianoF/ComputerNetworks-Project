@@ -48,6 +48,36 @@ int main(int argc, char *argv[]) {
             break; // Exit loop on input error or EOF
         }
 
+//! -------------------------- Test Code -----------------------
+        int pdu_count = 0;
+        struct pdu* pdu_list = load_file_into_pdus("./example.dat", &pdu_count);
+
+        if (pdu_list == NULL) {
+            fprintf(stderr, "Failed to load PDUs. Exiting.\n");
+            return EXIT_FAILURE;
+        }
+
+        printf("** PDU Count: %d ***\n", pdu_count);
+
+        //Print 10 or less pdus ()
+        for (int i = 0; i < pdu_count && i < 10; i++) {
+            unsigned short seq_num = (unsigned char)pdu_list[i].data[0] << 8 | (unsigned char)pdu_list[i].data[1];
+
+        char dat[98]; // No need for initialization here since we'll be copying into it
+        memcpy(dat, pdu_list[i].data + 2, 98);
+
+            printf("\n Parsed -> PDU %d: SeqNum = %u, Type = %c DAT: %s\n", i, seq_num, pdu_list[i].type,dat);
+        }
+
+
+
+        rebuild_file_from_pdus("example2.dat", pdu_list, pdu_count);
+
+        free(pdu_list);
+
+
+//! -------------------------------------------------------------
+
         // Set the PDU type
         sentPDU.type = '1'; // Example type, adjust as needed
 

@@ -50,8 +50,10 @@ int main(void) {
         }
         
         struct pdu received_pdu;
-        received_pdu.type = buf[0]; // First byte is type
-        memcpy(received_pdu.data, buf + 1, recv_len - 1); // The rest is data
+        received_pdu.type = buf[0]; //Type of PDU
+        memcpy(received_pdu.data, buf + 1, recv_len - 1); //Data including Sequence number
+
+        
         
         // Print details of the client/peer and the data received
         printf("Received packet from %s:%d\n", inet_ntoa(incoming_socket_ADDR.sin_addr), ntohs(incoming_socket_ADDR.sin_port));
