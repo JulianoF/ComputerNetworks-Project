@@ -26,6 +26,10 @@ all: UDP-Client UDP-Server
 debug: CFLAGS += -g
 debug: all
 
+# quick debug call
+
+d: clean debug
+
 # Clean command for cleanup
 .PHONY: clean
 clean:

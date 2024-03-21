@@ -37,13 +37,17 @@ struct file_request
 
 struct file_request *requests[MAX_REQUESTS] = {0}; // init all to null
 
-struct file_request* handle_file_request(struct pdu received_pdu, char* c_a, uint16_t c_p) {
+struct file_request *handle_file_request(struct pdu received_pdu, char *c_a, uint16_t c_p)
+{
     // Look for an empty spot in the requests array
-    for (int i = 0; i < MAX_REQUESTS; i++) {
-        if (requests[i] == NULL) {
+    for (int i = 0; i < MAX_REQUESTS; i++)
+    {
+        if (requests[i] == NULL)
+        {
             // Allocate memory for a new request
             struct file_request *new_request = (struct file_request *)malloc(sizeof(struct file_request));
-            if (new_request == NULL) {
+            if (new_request == NULL)
+            {
                 perror("Failed to allocate memory for new request");
                 return NULL; // Failure
             }
@@ -59,8 +63,11 @@ struct file_request* handle_file_request(struct pdu received_pdu, char* c_a, uin
             new_request->pdu_count = 0;
             new_request->pdu_list = load_file_into_pdus(received_pdu.data, &new_request->pdu_count);
 
-            if(new_request->pdu_list != NULL) {
+            if (new_request->pdu_list != NULL)
+            {
                 printf("\n OK: Successful read of %s", new_request->filename);
+            } else {
+                return NULL;
             }
 
             // Save the new request in the first empty spot found
@@ -113,50 +120,70 @@ int main(void)
             killserver("recvfrom()");
         }
 
-        //* 1. --------------- Decoding Incoming PDU -----------------------------------------
+        //* 1. --------------- Decoding Incoming PDU ---
 
         struct pdu received_pdu;
         received_pdu.type = buf[0];                       // Type of PDU
         memcpy(received_pdu.data, buf + 1, recv_len - 1); // Assuming pure 100 bytes Data (Only Client receives complete PDU packets)
 
-        //* 2. --------------- Performing Requested Action(s) -----------------------------------
+        //* 2. --------------- Performing Requested Action(s) ---
 
-if (received_pdu.type == 'C') {
-    char *c_a = inet_ntoa(incoming_socket_ADDR.sin_addr);
-    uint16_t c_p = ntohs(incoming_socket_ADDR.sin_port);
+        if (received_pdu.type == 'C')
+        {
+            char *c_a = inet_ntoa(incoming_socket_ADDR.sin_addr);
+            uint16_t c_p = ntohs(incoming_socket_ADDR.sin_port);
 
-    struct file_request* req = handle_file_request(received_pdu, c_a, c_p);
-    
-    if (req != NULL && req->pdu_list != NULL) {
-        for (int i = 0; i < req->pdu_count; i++) {
-            printf("SENDIN...");
-            // Assuming your pdu structure has a way to convert to a buffer and a length
-            // You will need to implement this part based on your actual pdu structure and how you want to serialize it
+            struct file_request *req = handle_file_request(received_pdu, c_a, c_p);
 
-            struct pdu *sending_pdu = &req->pdu_list[i];
-            int pdu_length = sizeof(sending_pdu);
-            
-            if (sendto(s, sending_pdu, pdu_length, 0, (struct sockaddr*)&incoming_socket_ADDR, alen) == -1) {
-                perror("sendto()");
-                // Handle error, maybe break out of the loop or attempt to resend
+            //Make sure file_request is successful:
+
+            if(req == NULL) {
+
+                struct pdu ErrorPDU;
+                ErrorPDU.type = 'E';
+                    strncpy(ErrorPDU.data, "Couldn't send file, it either isn't available or doesn't exist", PDU_DATA_SIZE - 1);
+                    ErrorPDU.data[PDU_DATA_SIZE - 1] = '\0'; // Ensure null-termination
+
+                if (sendto(s, &ErrorPDU, sizeof(ErrorPDU), 0, (struct sockaddr *)&incoming_socket_ADDR, alen) == -1)
+                    {
+                        perror("sendto()");
+                        // Handle error, maybe break out of the loop or attempt to resend
+                    }
+                continue;
             }
 
-            // Free the buffer if necessary, depending on how pdu_to_buffer is implemented
+            if (req != NULL && req->pdu_list != NULL)
+            {
+                for (int i = 0; i < req->pdu_count; i++)
+                {
+                    printf("SENDIN...");
+                    // Assuming your pdu structure has a way to convert to a buffer and a length
+                    // You will need to implement this part based on your actual pdu structure and how you want to serialize it
+
+                    struct pdu *sending_pdu = &req->pdu_list[i];
+                    int pdu_length = sizeof(sending_pdu);
+
+                    if (sendto(s, sending_pdu, pdu_length, 0, (struct sockaddr *)&incoming_socket_ADDR, alen) == -1)
+                    {
+                        perror("sendto()");
+                        // Handle error, maybe break out of the loop or attempt to resend
+                    }
+
+                    // Free the buffer if necessary, depending on how pdu_to_buffer is implemented
+                }
+            }
         }
-    }
-}
         if (received_pdu.type == 'E')
         {
             printf("Handle Errors");
         }
-
 
         if (received_pdu.type == 'O')
         {
             printf("Handle OKs");
         }
 
-        //* 3. --------------- Debug Printing -----------------------------------
+        //* 3. --------------- Debug Printing ---
 
         printf("Received packet from %s:%d\n", inet_ntoa(incoming_socket_ADDR.sin_addr), ntohs(incoming_socket_ADDR.sin_port));
         printf("PDU Type: %c\n", received_pdu.type);
