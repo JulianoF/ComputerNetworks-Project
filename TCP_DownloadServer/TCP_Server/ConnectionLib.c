@@ -106,8 +106,10 @@ int sendFile(int client_sd, char *filename) {
         size_t bytesRead;
         size_t bytesSent= 0;
         while ((bytesRead = fread(buffer, 1, MAX_PAYLOAD_SIZE, file)) > 0) {
+            sleep(1);
             ssize_t sent = send(client_sd, buffer, bytesRead, 0);
             bytesSent += sent;
+            printf("Sending %zu bytes\n",sent);
         }
         printf("File Sent to Client totaling: %zu Bytes!\n",bytesSent);
         fclose(file);

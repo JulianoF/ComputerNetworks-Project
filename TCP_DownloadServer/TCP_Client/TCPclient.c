@@ -22,13 +22,16 @@ void receive_file(int sd, char *filename) {
 
     char buffer[MAX_PAYLOAD_SIZE];
     ssize_t bytesRead;
-
+    size_t bytesTotal= 0;
     while ((bytesRead = recv(sd, buffer, MAX_PAYLOAD_SIZE, 0)) > 0) {
         fwrite(buffer, 1, bytesRead, file);
+        printf("Recieved %zu Bytes\n",bytesRead);
+        bytesTotal += bytesRead;
     }
     if (bytesRead < 0) {
         perror("Error receiving file data");
     }
+    printf("Total Received: %zu Bytes\n",bytesTotal);
     fclose(file);
 }
 
