@@ -17,6 +17,8 @@ int acceptClient(int sd);
 
 char* handleFilename(int client_sd);
 
+int sendFile(int client_sd, char *filename);
+
 void closeServer(int sd);
 
 void closeClient(int client_sd);

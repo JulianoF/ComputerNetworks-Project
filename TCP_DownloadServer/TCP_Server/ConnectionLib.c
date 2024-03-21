@@ -49,17 +49,26 @@ int acceptClient(int sd){
     while(1){
         printf("Waiting for Filename From Client\n");
         char *fromUser = handleFilename(client_sd);
-        if (fromUser != NULL) {
-            printf("Processing filename: %s\n", fromUser);
-            
-        } else {
-            printf("Failed to receive filename.\n");
+        if(fromUser == NULL){
+            printf("Connection Closed. Failed to receive filename.\n");
             break;
-            // Handle the error accordingly
         }
+        else if(strcmp(fromUser,"quit")==0){
+            break;
+            
+        }
+        else if (fromUser != NULL) {
+            printf("Processing filename: %s\n", fromUser);
+            int stat = sendFile(client_sd,fromUser);
+            if(stat < 0){
+                continue;
+            }else{
+                break;
+            }
+            
+        } 
     }
     
-
     close(client_sd);
     return client_sd; 
 }
@@ -83,12 +92,28 @@ char* handleFilename(int client_sd){
     }
     
     filename[recv_bytes] = '\0';
-    printf("Received Filename: %s\n", filename);
-
     return filename;
 }
 
-
+int sendFile(int client_sd, char *filename) {
+    FILE *file = fopen(filename, "rb");
+    if (file == NULL) {
+        char* errorMsg = "!# File not found Error From Server";
+        send(client_sd, errorMsg, strlen(errorMsg), 0);
+        return -1;
+    } else {
+        char buffer[MAX_PAYLOAD_SIZE];
+        size_t bytesRead;
+        size_t bytesSent= 0;
+        while ((bytesRead = fread(buffer, 1, MAX_PAYLOAD_SIZE, file)) > 0) {
+            ssize_t sent = send(client_sd, buffer, bytesRead, 0);
+            bytesSent += sent;
+        }
+        printf("File Sent to Client totaling: %zu Bytes!\n",bytesSent);
+        fclose(file);
+        return 0;
+    }
+}
 
 void closeServer(int sd){
     close(sd);

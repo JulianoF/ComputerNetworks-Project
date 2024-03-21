@@ -41,14 +41,12 @@ int main(int argc, char** argv){
         closeServer(sd);
         exit(1);
     }
+
     while(1){
         client_sd = acceptClient(sd);
-        if(client_sd<0){
-            break;
-        }
         break;
     }
-    
+    printf("Gracefully Closing Server\n");
     closeClient(client_sd);
     closeServer(sd);
     return 0;    
