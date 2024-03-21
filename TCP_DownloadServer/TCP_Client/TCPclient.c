@@ -1,5 +1,6 @@
 #define SERVER_TCP_PORT 8000
 #define LOOPBACK_IP "127.0.0.1"
+#define MAX_PAYLOAD_SIZE 100
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -12,8 +13,27 @@
 #include <string.h>
 #include <arpa/inet.h>
 
+void receive_file(int sd, char *filename) {
+    FILE *file = fopen(filename, "wb");
+    if (file == NULL){
+        perror("Error opening file for writing");
+        return;
+    }
+
+    char buffer[MAX_PAYLOAD_SIZE];
+    ssize_t bytesRead;
+
+    while ((bytesRead = recv(sd, buffer, MAX_PAYLOAD_SIZE, 0)) > 0) {
+        fwrite(buffer, 1, bytesRead, file);
+    }
+    if (bytesRead < 0) {
+        perror("Error receiving file data");
+    }
+    fclose(file);
+}
+
 int main(int argc, char** argv){
-    char buffer[256];
+    char filename[256];
     char* ip;
     int port, sd, result;
     struct sockaddr_in server;
@@ -51,7 +71,7 @@ int main(int argc, char** argv){
     server.sin_addr.s_addr = inet_addr(ip);
 
     if (connect(sd, (struct sockaddr*)&server, sizeof(server)) < 0) {
-        perror("connection with the server failed\n");
+        perror("Connection with the server failed\n");
         exit(EXIT_FAILURE);
     }else{
         printf("Connected to the server\n");
@@ -59,16 +79,36 @@ int main(int argc, char** argv){
 
     while(1){
         printf("What filename are you requesting?: ");
-        memset(buffer,0,sizeof(buffer));
-        scanf("%s", buffer);
+        memset(filename,0,sizeof(filename));
+        scanf("%s", filename);
 
-        result = write(sd,buffer,strlen(buffer));
+        result = write(sd,filename,strlen(filename));
 
         if (result < 0){
             perror("ERROR while writing to socket");
             exit(1);
         }
+        if(strcmp(filename,"quit")==0){
+            break;
+        }
+        char buffer[MAX_PAYLOAD_SIZE];
+        ssize_t bytesRead = recv(sd, buffer, MAX_PAYLOAD_SIZE, 0);
+
+        if (bytesRead > 0) {
+            if (buffer[0] != '!' && buffer[1] != '#') {
+                printf("File transfer started...\n");
+                receive_file(sd, filename);
+                printf("File received successfully.\n");
+                break;
+            } else {
+                printf("Error: %s\n", buffer);
+            }
+        } else {
+            printf("Error receiving data from server.\n");
+        }
+
     }
+
     close(sd);
 
     return 0;

@@ -1,7 +1,7 @@
 CC=gcc
-CFLAGS= -Wall -Wextra 
-DEPS = 
-OBJ = TCPclient.c
+CFLAGS= -Wall -Wextra -g
+DEPS =  
+OBJ = TCPclient.c 
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
