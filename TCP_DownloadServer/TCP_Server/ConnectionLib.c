@@ -105,6 +105,7 @@ int sendFile(int client_sd, char *filename) {
         char buffer[MAX_PAYLOAD_SIZE];
         size_t bytesRead;
         size_t bytesSent= 0;
+        send(client_sd,"start",5,0);
         while ((bytesRead = fread(buffer, 1, MAX_PAYLOAD_SIZE, file)) > 0) {
             sleep(1);
             ssize_t sent = send(client_sd, buffer, bytesRead, 0);
