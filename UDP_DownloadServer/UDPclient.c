@@ -15,12 +15,31 @@
 #define BUFLEN 512
 #define PORT 8888
 
-#define TIMEOUT_TICKS 5
+#define TIMEOUT_TICKS 5 //In Seconds
 
 void killclient(char *errorMessage)
 {
     perror(errorMessage);
     exit(1);
+}
+
+void handlePrint(struct pdu* pdu) {
+    if (pdu->type == 'E') {
+        // Error message handling
+        printf("[UDP-Client-Error]: %s\n", pdu->data);
+
+    }    else if (pdu->type == 'D') {
+        unsigned short seq_num = (unsigned char)pdu->data[0] << 8 | (unsigned char)pdu->data[1];
+
+        char dat[98];
+        memcpy(dat, pdu->data + 2, 98);
+
+        printf("\n[UDP-Client] : SQ: %u, %c Data (char): \n%s\n", seq_num, pdu->type,dat);
+    } 
+    else  {
+        // General message handling with a prefix
+        printf("[UDP-Client]: Server reply: %c %s\n", pdu->type, pdu->data);
+    }
 }
 
 int main(int argc, char *argv[])
@@ -51,6 +70,10 @@ int main(int argc, char *argv[])
         fprintf(stderr, "inet_aton() failed\n");
         exit(1);
     }
+
+    // PDU List store:
+    struct pdu* incoming_pdu_list = NULL;
+    int i_count = 0;
 
     while (1)
     {
@@ -99,7 +122,17 @@ int main(int argc, char *argv[])
                 {
                     killclient("recvfrom() failed");
                 }
-                printf("Server reply: %c %s\n", receivedPDU.type, receivedPDU.data);
+
+            incoming_pdu_list = realloc(incoming_pdu_list, (i_count + 1) * sizeof(struct pdu));
+            if (!incoming_pdu_list) {
+                perror("Failed to allocate memory for PDUs");
+                exit(2);
+            }
+            incoming_pdu_list[i_count] = receivedPDU;
+            i_count++;
+
+            handlePrint(&receivedPDU);
+
                 lastTime = clock(); // Reset the timer
             }
             else //! TIMEOUT CONDITION \/ \/ \/
@@ -111,8 +144,32 @@ int main(int argc, char *argv[])
 
         } while (receivedPDU.type != 'F' && receivedPDU.type != 'E');
 
-        printf("DO WHLE ENEDED");
+        printf("DO WHILE ENDED\n");
+
+for(int i = 0; i < i_count; i++) {
+    // Extract the first two bytes
+    unsigned char high_byte = incoming_pdu_list[i].data[0];
+    unsigned char low_byte = incoming_pdu_list[i].data[1];
+
+    // Convert to 16-bit value
+    uint16_t seq_num = (high_byte << 8) | low_byte;
+
+    // Print the sequence number
+    printf("Sequence Number: %u\n", seq_num);
+}
+
+if (i_count > 0) {
+    const char* output_filename = "output_file.bin";
+    int result = rebuild_file_from_pdus(output_filename, incoming_pdu_list, i_count);
+    if (result != 0) {
+        fprintf(stderr, "Failed to rebuild file from PDUs\n");
+    } else {
+        printf("File successfully rebuilt from PDUs\n");
     }
+}
+    }
+
+
 
     close(sock);
     return 0;

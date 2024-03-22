@@ -156,12 +156,11 @@ int main(void)
             {
                 for (int i = 0; i < req->pdu_count; i++)
                 {
-                    printf("SENDIN...");
                     // Assuming your pdu structure has a way to convert to a buffer and a length
                     // You will need to implement this part based on your actual pdu structure and how you want to serialize it
 
                     struct pdu *sending_pdu = &req->pdu_list[i];
-                    int pdu_length = sizeof(sending_pdu);
+                    int pdu_length = sizeof(*sending_pdu);
 
                     if (sendto(s, sending_pdu, pdu_length, 0, (struct sockaddr *)&incoming_socket_ADDR, alen) == -1)
                     {
@@ -169,8 +168,9 @@ int main(void)
                         // Handle error, maybe break out of the loop or attempt to resend
                     }
 
-                    // Free the buffer if necessary, depending on how pdu_to_buffer is implemented
                 }
+
+                rebuild_file_from_pdus("example_A.txt",req->pdu_list, req->pdu_count);
             }
         }
         if (received_pdu.type == 'E')
