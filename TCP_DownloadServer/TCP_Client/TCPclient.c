@@ -1,8 +1,7 @@
 #define SERVER_TCP_PORT 8000
 #define LOOPBACK_IP "127.0.0.1"
 
-#define MAX_PAYLOAD_SIZE 34
-//#define MAX_PAYLOAD_SIZE 100 //Uncomment this for 100 byte payload not 100 byte packet
+#define MAX_PAYLOAD_SIZE 100 
 
 #include <stdio.h>
 #include <sys/types.h>
