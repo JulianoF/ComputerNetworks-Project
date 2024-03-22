@@ -1,8 +1,8 @@
 #ifndef CONNECTIONLIB_H
 #define CONNECTIONLIB_H
 
-#define MAX_PAYLOAD_SIZE 34
-//#define MAX_PAYLOAD_SIZE 100 //Uncomment this for 100 byte payload not 100 byte packet
+
+#define MAX_PAYLOAD_SIZE 100 
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
