@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 
     // PDU List store:
     struct pdu* incoming_pdu_list = NULL;
-    int i_count = 0;
+    int i_pdu_count = 0;
 
     while (1)
     {
@@ -123,13 +123,13 @@ int main(int argc, char *argv[])
                     killclient("recvfrom() failed");
                 }
 
-            incoming_pdu_list = realloc(incoming_pdu_list, (i_count + 1) * sizeof(struct pdu));
+            incoming_pdu_list = realloc(incoming_pdu_list, (i_pdu_count + 1) * sizeof(struct pdu));
             if (!incoming_pdu_list) {
                 perror("Failed to allocate memory for PDUs");
                 exit(2);
             }
-            incoming_pdu_list[i_count] = receivedPDU;
-            i_count++;
+            incoming_pdu_list[i_pdu_count] = receivedPDU;
+            i_pdu_count++;
 
             handlePrint(&receivedPDU);
 
@@ -144,29 +144,20 @@ int main(int argc, char *argv[])
 
         } while (receivedPDU.type != 'F' && receivedPDU.type != 'E');
 
-        printf("DO WHILE ENDED\n");
+        //* ----------------- After While Loop of Receiving Packets (filled incoming_pdu_list buffer) -----------
+        
+        struct pdu* cleaned_pdu = validate_pdu_list(incoming_pdu_list, i_pdu_count);
 
-for(int i = 0; i < i_count; i++) {
-    // Extract the first two bytes
-    unsigned char high_byte = incoming_pdu_list[i].data[0];
-    unsigned char low_byte = incoming_pdu_list[i].data[1];
-
-    // Convert to 16-bit value
-    uint16_t seq_num = (high_byte << 8) | low_byte;
-
-    // Print the sequence number
-    printf("Sequence Number: %u\n", seq_num);
-}
-
-if (i_count > 0) {
-    const char* output_filename = "output_file.bin";
-    int result = rebuild_file_from_pdus(output_filename, incoming_pdu_list, i_count);
-    if (result != 0) {
-        fprintf(stderr, "Failed to rebuild file from PDUs\n");
-    } else {
-        printf("File successfully rebuilt from PDUs\n");
-    }
-}
+        if (i_pdu_count > 0) {
+            const char* output_filename = "output_file.bin";
+            int result = rebuild_file_from_pdus(output_filename, cleaned_pdu, i_pdu_count);
+            if (result != 0) {
+                fprintf(stderr, "Failed to rebuild file from PDUs\n");
+            } else {
+                printf("File successfully rebuilt from PDUs\n");
+            }
+        }
+        
     }
 
 

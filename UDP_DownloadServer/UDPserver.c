@@ -169,8 +169,8 @@ int main(void)
                     }
 
                 }
-
-                rebuild_file_from_pdus("example_A.txt",req->pdu_list, req->pdu_count);
+                //DEBUG:
+                //rebuild_file_from_pdus("example_A.txt",req->pdu_list, req->pdu_count);
             }
         }
         if (received_pdu.type == 'E')

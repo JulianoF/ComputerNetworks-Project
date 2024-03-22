@@ -78,3 +78,62 @@ int rebuild_file_from_pdus(const char* output_filename, struct pdu* pdu_list, in
     fclose(file);
     return 0; // Success
 }
+
+// ----------------------- PDU List pipelining to ensure correctness -----------------------
+
+struct pdu* validate_pdu_list(struct pdu* dirty_pdu_list, int pdu_count) {
+
+    //* ( 1. ) Sorting PDU's based on their sequence numbers:
+
+    struct pdu* sorted_pdu_list = (struct pdu*)malloc(pdu_count * sizeof(struct pdu));
+
+    if (sorted_pdu_list == NULL) {
+        // Handle memory allocation failure
+        printf("Memory allocation failed\n");
+        return NULL;
+    }
+
+    // Copy dirty_pdu_list to sorted_pdu_list
+    for (int i = 0; i < pdu_count; i++) {
+        sorted_pdu_list[i] = dirty_pdu_list[i];
+    }
+
+    // Bubble sort algorithm
+    for (int i = 0; i < pdu_count - 1; i++) {
+        for (int j = 0; j < pdu_count - i - 1; j++) {
+            // Extract the first two bytes to form the sequence number for comparison
+            uint16_t seq_num_j = (sorted_pdu_list[j].data[0] << 8) | sorted_pdu_list[j].data[1];
+            uint16_t seq_num_j1 = (sorted_pdu_list[j + 1].data[0] << 8) | sorted_pdu_list[j + 1].data[1];
+
+            // If the current item's sequence number is greater than the next, swap them
+            if (seq_num_j > seq_num_j1) {
+                struct pdu temp = sorted_pdu_list[j];
+                sorted_pdu_list[j] = sorted_pdu_list[j + 1];
+                sorted_pdu_list[j + 1] = temp;
+            }
+        }
+    }
+
+    //* ( 2. ) - Ensuring there are no gaps in sequence numbers: EX: 0,1,3,4 in this case 2 is missing
+    //*        - Ensuring that Final PDU packet is included
+    
+    int valid_count = pdu_count; // Assume all PDUs are valid initially
+
+    for (int i = 0; i < pdu_count - 1; i++) {
+        uint16_t seq_num_current = (sorted_pdu_list[i].data[0] << 8) | sorted_pdu_list[i].data[1];
+        uint16_t seq_num_next = (sorted_pdu_list[i + 1].data[0] << 8) | sorted_pdu_list[i + 1].data[1];
+
+        // If there's a gap in the sequence numbers, adjust valid_count and break
+        if (seq_num_next - seq_num_current != 1) {
+            valid_count = i + 1; // Include PDUs up to the first gap
+            break;
+        }
+    }
+
+    if(valid_count != pdu_count) { //Indication of Gaps?
+        printf("GAPS!!!");
+    }
+
+    printf("File Validation Complete!");
+    return sorted_pdu_list;
+}
