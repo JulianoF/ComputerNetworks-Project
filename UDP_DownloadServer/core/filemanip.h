@@ -20,6 +20,7 @@ struct pdu {
 
 uint32_t get_pdu_seq_num(struct pdu *pdu);
 void set_pdu_seq_num(struct pdu *pdu, uint32_t seq_num);
+void extract_filename(char *dat, char *modified_filename, size_t size);
 
 // Loading & Rebuilding PDUs (to/from Files)
 

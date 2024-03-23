@@ -117,6 +117,11 @@ int main(int argc, char *argv[])
         struct sequence_jump *mistake = NULL;
         size_t mistake_count = 0;
 
+
+
+char modified_filename[256];
+extract_filename(sentPDU.data, modified_filename, sizeof(modified_filename));
+
         do
         {
             FD_ZERO(&readfds);      // Clear the set
@@ -248,45 +253,63 @@ int main(int argc, char *argv[])
             }
         }
 
-if(mistake_count > 0) {
-    printf("File Needs to be Re-sorted as Mistakes were made & corrected.\n");
+        //* Send OK to Server now:
+                struct pdu okPDU;
+                memset(&okPDU, 0, sizeof(okPDU));
+                okPDU.type = 'O';
+                printf("SENT OK");
+                // Send the error PDU to request missing sequence number
+                if (sendto(sock, &okPDU, sizeof(okPDU), 0, (struct sockaddr *)&serverAddr, addrLen) == -1)
+                {
+                    killclient("sendto() failed to ok ");
+                }
+    
 
-    size_t update_threshold = i_pdu_count / 20; // Update every 5% of the total count
-    size_t update_next = update_threshold; // When to show the next update
-
-    for (size_t i = 0; i < i_pdu_count-1; i++) {
-        int swapped = 0; // Use 0 as false
-        for (size_t j = 0; j < i_pdu_count-i-1; j++) {
-            uint32_t seq_num_j = get_pdu_seq_num(&incoming_pdu_list[j]);
-            uint32_t seq_num_next = get_pdu_seq_num(&incoming_pdu_list[j+1]);
-
-            // Swap if the sequence number of the current PDU is greater than the next PDU
-            if (seq_num_j > seq_num_next) {
-                struct pdu temp = incoming_pdu_list[j];
-                incoming_pdu_list[j] = incoming_pdu_list[j+1];
-                incoming_pdu_list[j+1] = temp;
-                swapped = 1; // Use 1 as true
-            }
-        }
-
-        // If no two elements were swapped by the inner loop, then break
-        if (!swapped) {
-            break;
-        }
-
-        // Show progress update
-        if (i >= update_next) {
-            printf("Sorting Progress: Approximately %zu%% complete...\n", (i+1) * 100 / (i_pdu_count-1));
-            update_next += update_threshold;
-        }
-    }
-
-    printf("Sorting Complete.\n");
-}
-        if (i_pdu_count > 0)
+        if (mistake_count > 0)
         {
-            const char *output_filename = "QUZ.mp4";
-            int result = rebuild_file_from_pdus(output_filename, incoming_pdu_list, i_pdu_count);
+            printf("File Needs to be Re-sorted as Mistakes were made & corrected.\n");
+
+            size_t update_threshold = i_pdu_count / 20; // Update every 5% of the total count
+            size_t update_next = update_threshold;      // When to show the next update
+
+            for (size_t i = 0; i < i_pdu_count - 1; i++)
+            {
+                int swapped = 0; // Use 0 as false
+                for (size_t j = 0; j < i_pdu_count - i - 1; j++)
+                {
+                    uint32_t seq_num_j = get_pdu_seq_num(&incoming_pdu_list[j]);
+                    uint32_t seq_num_next = get_pdu_seq_num(&incoming_pdu_list[j + 1]);
+
+                    // Swap if the sequence number of the current PDU is greater than the next PDU
+                    if (seq_num_j > seq_num_next)
+                    {
+                        struct pdu temp = incoming_pdu_list[j];
+                        incoming_pdu_list[j] = incoming_pdu_list[j + 1];
+                        incoming_pdu_list[j + 1] = temp;
+                        swapped = 1; // Use 1 as true
+                    }
+                }
+
+                // If no two elements were swapped by the inner loop, then break
+                if (!swapped)
+                {
+                    break;
+                }
+
+                // Show progress update
+                if (i >= update_next)
+                {
+                    printf("Sorting Progress: Approximately %zu%% complete...\n", (i + 1) * 100 / (i_pdu_count - 1));
+                    update_next += update_threshold;
+                }
+            }
+
+            printf("Sorting Complete.\n");
+        }
+        if (i_pdu_count > 0)
+        {   
+            printf("FNAME: %s", modified_filename);
+            int result = rebuild_file_from_pdus(modified_filename, incoming_pdu_list, i_pdu_count);
             if (result != 0)
             {
                 fprintf(stderr, "Failed to rebuild file from PDUs\n");

@@ -1,25 +1,27 @@
 #include "filemanip.h"
 
-//In C's `char` datatype, It's actually signed, so that's why max is 127 chars, and MSB being a sign when promoted to larger Value
-// 0: 127 small chars, 1: 127 big chars, the issue here is when casting to int, It was taking that 1 in signed char as negative, and underflowing seq number
+// In C's `char` datatype, It's actually signed, so that's why max is 127 chars, and MSB being a sign when promoted to larger Value
+//  0: 127 small chars, 1: 127 big chars, the issue here is when casting to int, It was taking that 1 in signed char as negative, and underflowing seq number
 
 //* Causing Behaviors like this in the server:
 
 //[UDP-Serv] : SQ: 127, D packet
 //[UDP-Serv] : SQ: 4294967168, D packet
 
-//!Notice: after a signed char hit's max, it totally overflows a 32 bit int
+//! Notice: after a signed char hit's max, it totally overflows a 32 bit int
 
-uint32_t get_pdu_seq_num(struct pdu *pdu) {
+uint32_t get_pdu_seq_num(struct pdu *pdu)
+{
 
-    //!IMPORTANT: Cast to unsigned char before shifting to ensure no sign extension and avoid overflow issues, read above
-    uint32_t seq_num = ((uint32_t)(unsigned char)pdu->data[0] << 16) | 
-                       ((uint32_t)(unsigned char)pdu->data[1] << 8) | 
-                        (uint32_t)(unsigned char)pdu->data[2];
+    //! IMPORTANT: Cast to unsigned char before shifting to ensure no sign extension and avoid overflow issues, read above
+    uint32_t seq_num = ((uint32_t)(unsigned char)pdu->data[0] << 16) |
+                       ((uint32_t)(unsigned char)pdu->data[1] << 8) |
+                       (uint32_t)(unsigned char)pdu->data[2];
     return seq_num;
 }
 
-void set_pdu_seq_num(struct pdu *pdu, uint32_t seq_num) {
+void set_pdu_seq_num(struct pdu *pdu, uint32_t seq_num)
+{
     // Clear the upper 8 bits to ensure only 24 bits are encoded
     seq_num &= 0xFFFFFF;
 
@@ -64,7 +66,7 @@ struct pdu *load_file_into_pdus(const char *filename, int *pdu_count)
 
         pdus[i].type = (i == total_data_PDUs - 1) ? 'F' : 'D'; // Mark the last PDU if it is
 
-        set_pdu_seq_num(&pdus[i], seq_num); //Sets 3 byte sequence number in chars
+        set_pdu_seq_num(&pdus[i], seq_num); // Sets 3 byte sequence number in chars
 
         if (bytes_read > 0)
         {
@@ -182,4 +184,33 @@ struct pdu *validate_pdu_list(struct pdu *dirty_pdu_list, int pdu_count)
 
     printf("File Validation Complete!");
     return sorted_pdu_list;
+}
+
+// ----------------------- String Manipulation Helper: Create FileName based on path: -----------------------
+
+void extract_filename(char *dat, char *modified_filename, size_t size) {
+    const char *output_filename = strrchr(dat, '/');
+    if (output_filename != NULL) {
+        // Move past the '/' character to get the actual filename
+        output_filename++;
+    } else {
+        // No '/' found, the entire sentPDU.data is the filename
+        output_filename = dat;
+    }
+
+    // Find the last dot to identify the extension
+    const char *last_dot = strrchr(output_filename, '.');
+    if (last_dot != NULL) {
+        // Copy the part of the filename before the extension
+        size_t name_length = last_dot - output_filename;
+        if (name_length + 2 < size) { // +2 for '2' and null terminator
+            strncpy(modified_filename, output_filename, name_length);
+            modified_filename[name_length] = '2'; // Insert "2" before the extension
+            strcpy(modified_filename + name_length + 1, last_dot); // Append the extension part
+        }
+    } else {
+        // No dot found, simply append "2" to the filename
+        snprintf(modified_filename, size, "%s2", output_filename);
+    }
+    modified_filename[size - 1] = '\0'; // Ensure null termination
 }
