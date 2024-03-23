@@ -98,6 +98,30 @@ struct file_request *lookup_file_request(char *c_a, uint16_t c_p)
     return NULL; // No matching request found
 }
 
+void delete_file_request(char *c_a, uint16_t c_p) {
+    for (int i = 0; i < MAX_REQUESTS; i++) {
+        if (requests[i] != NULL) {
+            // Check if the client address and port match
+            if (strcmp(requests[i]->c_addr, c_a) == 0 && requests[i]->c_port == c_p) {
+                // Free client address string
+                free(requests[i]->c_addr);
+                requests[i]->c_addr = NULL;
+
+                free(requests[i]->pdu_list); //free pdu list built
+                requests[i]->pdu_list = NULL;
+
+                // Finally, free the request object itself and remove it from the requests array
+                free(requests[i]);
+                requests[i] = NULL; // Mark as available
+
+                printf("\n>> Deleted file request from %s:%d successfully.\n", c_a, c_p);
+                return; // Exit after deletion
+            }
+        }
+    }
+    printf("\n>> No matching file request found for %s:%d.\n", c_a, c_p);
+}
+
 int main(void)
 {
 
@@ -206,7 +230,7 @@ int main(void)
                         // Handle error, maybe break out of the loop or attempt to resend
                     }
 
-                    usleep(10);
+                    usleep(15);
 
                 }
                 //DEBUG:
@@ -229,7 +253,7 @@ int main(void)
             if(req != NULL){
 
                 uint32_t seq_num_in_need = get_pdu_seq_num(&received_pdu);
-                printf("ERROR: Client needs PDU with SQ: %d",seq_num_in_need);
+                printf("\nERROR: Client needs PDU with SQ: %d",seq_num_in_need);
 
                 struct pdu *sending_pdu = &req->pdu_list[seq_num_in_need];
                 int pdu_length = sizeof(*sending_pdu);
@@ -241,12 +265,15 @@ int main(void)
                     }
             }
 
-            printf("Handle Errors");
         }
 
         if (received_pdu.type == 'O')
         {
-            printf("Handle OKs");
+            char *c_a = inet_ntoa(incoming_socket_ADDR.sin_addr);
+            uint16_t c_p = ntohs(incoming_socket_ADDR.sin_port);
+            printf("HANDLING OK....\n");
+
+            delete_file_request(c_a,c_p);
         }
 
         //* 3. --------------- Debug Printing ---
