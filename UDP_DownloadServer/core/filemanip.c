@@ -138,7 +138,7 @@ struct pdu *validate_pdu_list(struct pdu *dirty_pdu_list, int pdu_count)
         sorted_pdu_list[i] = dirty_pdu_list[i];
     }
 
-    // Bubble sort algorithm
+    // Bubble sort algorithm with seq/num compares
     for (int i = 0; i < pdu_count - 1; i++)
     {
         for (int j = 0; j < pdu_count - i - 1; j++)

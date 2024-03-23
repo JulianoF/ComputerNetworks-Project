@@ -206,7 +206,7 @@ int main(void)
                         // Handle error, maybe break out of the loop or attempt to resend
                     }
 
-                    usleep(10);
+                    usleep(15);
 
                 }
                 //DEBUG:
@@ -229,7 +229,7 @@ int main(void)
             if(req != NULL){
 
                 uint32_t seq_num_in_need = get_pdu_seq_num(&received_pdu);
-                printf("ERROR: Client needs PDU with SQ: %d",seq_num_in_need);
+                printf("\nERROR: Client needs PDU with SQ: %d",seq_num_in_need);
 
                 struct pdu *sending_pdu = &req->pdu_list[seq_num_in_need];
                 int pdu_length = sizeof(*sending_pdu);
