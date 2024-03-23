@@ -6,8 +6,8 @@
 #include <string.h>
 #include <stdint.h>
 
-#define SEQ_LEN 2 //Length of Sequence number (in bytes), 2 bytes or 16 bits can support 65K Frames
-#define DATA_LEN 98
+#define SEQ_LEN 3 //Length of Sequence number (in bytes), 3 bytes or 24 bit
+#define DATA_LEN 97
 #define PDU_DATA_SIZE 100
 
 struct pdu {

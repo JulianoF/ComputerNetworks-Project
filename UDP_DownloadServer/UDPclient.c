@@ -12,7 +12,6 @@
 #include "core/filemanip.h"
 
 #define SERVER "127.0.0.1"
-#define BUFLEN 512
 #define PORT 8888
 
 #define TIMEOUT_TICKS 5 //In Seconds
@@ -159,7 +158,6 @@ int main(int argc, char *argv[])
         }
         
     }
-
 
 
     close(sock);
