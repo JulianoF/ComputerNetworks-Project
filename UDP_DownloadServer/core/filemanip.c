@@ -1,9 +1,32 @@
 #include "filemanip.h"
 
-uint32_t get_pdu_size(struct pdu *pdu)
-{
-    uint32_t PDU_S = (pdu->data[0] << 16) | (pdu->data[1] << 8) | pdu->data[2];
-    return PDU_S;
+//In C's `char` datatype, It's actually signed, so that's why max is 127 chars, and MSB being a sign when promoted to larger Value
+// 0: 127 small chars, 1: 127 big chars, the issue here is when casting to int, It was taking that 1 in signed char as negative, and underflowing seq number
+
+//* Causing Behaviors like this in the server:
+
+//[UDP-Serv] : SQ: 127, D packet
+//[UDP-Serv] : SQ: 4294967168, D packet
+
+//!Notice: after a signed char hit's max, it totally overflows a 32 bit int
+
+uint32_t get_pdu_seq_num(struct pdu *pdu) {
+
+    //!IMPORTANT: Cast to unsigned char before shifting to ensure no sign extension and avoid overflow issues, read above
+    uint32_t seq_num = ((uint32_t)(unsigned char)pdu->data[0] << 16) | 
+                       ((uint32_t)(unsigned char)pdu->data[1] << 8) | 
+                        (uint32_t)(unsigned char)pdu->data[2];
+    return seq_num;
+}
+
+void set_pdu_seq_num(struct pdu *pdu, uint32_t seq_num) {
+    // Clear the upper 8 bits to ensure only 24 bits are encoded
+    seq_num &= 0xFFFFFF;
+
+    // Direct assignment to char is fine here since we are only storing the lower 8 bits
+    pdu->data[0] = (char)((seq_num >> 16) & 0xFF);
+    pdu->data[1] = (char)((seq_num >> 8) & 0xFF);
+    pdu->data[2] = (char)(seq_num & 0xFF);
 }
 
 //* ----------------------- File -> PDU List -----------------------
@@ -41,11 +64,7 @@ struct pdu *load_file_into_pdus(const char *filename, int *pdu_count)
 
         pdus[i].type = (i == total_data_PDUs - 1) ? 'F' : 'D'; // Mark the last PDU if it is
 
-        // Pack 24 least significant bits of seq_num into pdus[i].data[0], [1], [2]
-
-        pdus[i].data[0] = (char)((seq_num >> 16) & 0xFF); // Extract bits 17-24 (msb)
-        pdus[i].data[1] = (char)((seq_num >> 8) & 0xFF);  // Extract bits 9-16
-        pdus[i].data[2] = (char)(seq_num & 0xFF);         // Extract bits 1-8 (lsb)
+        set_pdu_seq_num(&pdus[i], seq_num); //Sets 3 byte sequence number in chars
 
         if (bytes_read > 0)
         {
@@ -125,8 +144,8 @@ struct pdu *validate_pdu_list(struct pdu *dirty_pdu_list, int pdu_count)
         for (int j = 0; j < pdu_count - i - 1; j++)
         {
 
-            uint32_t seq_num_j = get_pdu_size(&sorted_pdu_list[j]);
-            uint32_t seq_num_j1 = get_pdu_size(&sorted_pdu_list[j + 1]);
+            uint32_t seq_num_j = get_pdu_seq_num(&sorted_pdu_list[j]);
+            uint32_t seq_num_j1 = get_pdu_seq_num(&sorted_pdu_list[j + 1]);
 
             // If the current item's sequence number is greater than the next, swap them
             if (seq_num_j > seq_num_j1)
@@ -145,8 +164,8 @@ struct pdu *validate_pdu_list(struct pdu *dirty_pdu_list, int pdu_count)
 
     for (int i = 0; i < pdu_count - 1; i++)
     {
-        uint32_t seq_num_current = get_pdu_size(&sorted_pdu_list[i]);
-        uint32_t seq_num_next = get_pdu_size(&sorted_pdu_list[i + 1]);
+        uint32_t seq_num_current = get_pdu_seq_num(&sorted_pdu_list[i]);
+        uint32_t seq_num_next = get_pdu_seq_num(&sorted_pdu_list[i + 1]);
 
         // If there's a gap in the sequence numbers, adjust valid_count and break
         if (seq_num_next - seq_num_current != 1)

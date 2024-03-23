@@ -31,7 +31,7 @@ struct file_request
 
     // File
     char filename[DATA_LEN];
-    int pdu_count;
+    uint32_t pdu_count;
     struct pdu *pdu_list;
 };
 
@@ -79,6 +79,23 @@ struct file_request *handle_file_request(struct pdu received_pdu, char *c_a, uin
     }
 
     return NULL; // Array is full, or another error occurred
+}
+
+
+struct file_request *lookup_file_request(char *c_a, uint16_t c_p)
+{
+    for (int i = 0; i < MAX_REQUESTS; i++)
+    {
+        if (requests[i] != NULL)
+        {
+            // Check if the client address and port match
+            if (strcmp(requests[i]->c_addr, c_a) == 0 && requests[i]->c_port == c_p)
+            {
+                return requests[i]; // Matching request found
+            }
+        }
+    }
+    return NULL; // No matching request found
 }
 
 int main(void)
@@ -154,13 +171,34 @@ int main(void)
 
             if (req != NULL && req->pdu_list != NULL)
             {
+                printf("PDU C: %d\n",req->pdu_count);
+
+                //Sending Length Packet
+                struct pdu lenPDU;
+                lenPDU.type = 'O';
+                set_pdu_seq_num(&lenPDU, req->pdu_count);
+
+                //Send Ok Length Packet:
+                if (sendto(s, &lenPDU, sizeof(&lenPDU), 0, (struct sockaddr *)&incoming_socket_ADDR, alen) == -1)
+                    {
+                        perror("sendto()");
+                        // Handle error, maybe break out of the loop or attempt to resend
+                    }
+                
+                
                 for (int i = 0; i < req->pdu_count; i++)
                 {
-                    // Assuming your pdu structure has a way to convert to a buffer and a length
-                    // You will need to implement this part based on your actual pdu structure and how you want to serialize it
 
                     struct pdu *sending_pdu = &req->pdu_list[i];
                     int pdu_length = sizeof(*sending_pdu);
+
+
+                    uint32_t seq_num = get_pdu_seq_num(sending_pdu);
+
+                    char dat[97];
+
+                    printf("\n[UDP-Serv] : SQ: %u, %c\n", seq_num, sending_pdu->type);
+
 
                     if (sendto(s, sending_pdu, pdu_length, 0, (struct sockaddr *)&incoming_socket_ADDR, alen) == -1)
                     {
@@ -168,13 +206,41 @@ int main(void)
                         // Handle error, maybe break out of the loop or attempt to resend
                     }
 
+                    usleep(10);
+
                 }
                 //DEBUG:
-                //rebuild_file_from_pdus("example_A.txt",req->pdu_list, req->pdu_count);
+                rebuild_file_from_pdus("quality_Z.mp4",req->pdu_list, req->pdu_count);
             }
         }
         if (received_pdu.type == 'E')
         {
+
+            char *c_a = inet_ntoa(incoming_socket_ADDR.sin_addr);
+            uint16_t c_p = ntohs(incoming_socket_ADDR.sin_port);
+
+            struct file_request *req = lookup_file_request(c_a, c_p); //Either the User's OG file, or NULL
+
+            if(req == NULL){
+                printf("Failed to find FQ");
+                continue;
+            }
+
+            if(req != NULL){
+
+                uint32_t seq_num_in_need = get_pdu_seq_num(&received_pdu);
+                printf("ERROR: Client needs PDU with SQ: %d",seq_num_in_need);
+
+                struct pdu *sending_pdu = &req->pdu_list[seq_num_in_need];
+                int pdu_length = sizeof(*sending_pdu);
+
+                if (sendto(s, sending_pdu, pdu_length, 0, (struct sockaddr *)&incoming_socket_ADDR, alen) == -1)
+                    {
+                        perror("sendto()");
+                        // Handle error, maybe break out of the loop or attempt to resend
+                    }
+            }
+
             printf("Handle Errors");
         }
 

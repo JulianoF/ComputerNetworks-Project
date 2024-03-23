@@ -14,7 +14,7 @@
 #define SERVER "127.0.0.1"
 #define PORT 8888
 
-#define TIMEOUT_TICKS 5 //In Seconds
+#define TIMEOUT_TICKS 5 // In Seconds
 
 void killclient(char *errorMessage)
 {
@@ -22,20 +22,24 @@ void killclient(char *errorMessage)
     exit(1);
 }
 
-void handlePrint(struct pdu* pdu) {
-    if (pdu->type == 'E') {
+void handlePrint(struct pdu *pdu)
+{
+    if (pdu->type == 'E')
+    {
         // Error message handling
         printf("[UDP-Client-Error]: %s\n", pdu->data);
+    }
+    else if (pdu->type == 'D')
+    {
+        uint32_t seq_num = get_pdu_seq_num(pdu);
 
-    }    else if (pdu->type == 'D') {
-        unsigned short seq_num = (unsigned char)pdu->data[0] << 8 | (unsigned char)pdu->data[1];
+        char dat[97];
+        memcpy(dat, pdu->data + 3, 97);
 
-        char dat[98];
-        memcpy(dat, pdu->data + 2, 98);
-
-        printf("\n[UDP-Client] : SQ: %u, %c Data (char): \n%s\n", seq_num, pdu->type,dat);
-    } 
-    else  {
+        printf("\n[UDP-Client] : SQ: %u, %c Data (char): \n%s\n", seq_num, pdu->type, dat);
+    }
+    else
+    {
         // General message handling with a prefix
         printf("[UDP-Client]: Server reply: %c %s\n", pdu->type, pdu->data);
     }
@@ -71,8 +75,7 @@ int main(int argc, char *argv[])
     }
 
     // PDU List store:
-    struct pdu* incoming_pdu_list = NULL;
-    int i_pdu_count = 0;
+    struct pdu *incoming_pdu_list = NULL;
 
     while (1)
     {
@@ -99,6 +102,11 @@ int main(int argc, char *argv[])
         int select_sockevent_return; // Used to store the return value of select()
 
         clock_t lastTime = clock(), currentTime;
+        
+        uint32_t i_pdu_count = 0;
+        uint32_t Correct_PDU_count = 0; //This will be the Number of PDU packets the message contains (sent via the 'O' Response)
+
+        uint32_t last_seq_num_sent = 0; //This is for checking +1 continiity
 
         do
         {
@@ -110,7 +118,7 @@ int main(int argc, char *argv[])
             // Wait for an event on the socket, with a timeout: time_value
             select_sockevent_return = select(sock + 1, &readfds, NULL, NULL, &time_value);
 
-            if (select_sockevent_return == -1) //Failed
+            if (select_sockevent_return == -1) // Failed
             {
                 killclient("select() failed");
             }
@@ -122,21 +130,38 @@ int main(int argc, char *argv[])
                     killclient("recvfrom() failed");
                 }
 
-            incoming_pdu_list = realloc(incoming_pdu_list, (i_pdu_count + 1) * sizeof(struct pdu));
-            if (!incoming_pdu_list) {
-                perror("Failed to allocate memory for PDUs");
-                exit(2);
-            }
-            incoming_pdu_list[i_pdu_count] = receivedPDU;
-            i_pdu_count++;
+                //* Check what kind of Received PDU it is (Specifically it's an O)
+                if(receivedPDU.type == 'O'){
+                    Correct_PDU_count = get_pdu_seq_num(&receivedPDU);
+                } else {
+                    uint32_t seq_n = get_pdu_seq_num(&receivedPDU);
+                    
+                    if(last_seq_num_sent == 0 && seq_n == 0){ //First case:
+                        printf("SQ_--");
+                    } else if( (seq_n - last_seq_num_sent) > 1 ) {
+                        printf("Jump_in_SQ_--");    
+                    }
 
-            handlePrint(&receivedPDU);
+                    last_seq_num_sent = seq_n; //reset last
+
+                incoming_pdu_list = realloc(incoming_pdu_list, (i_pdu_count + 1) * sizeof(struct pdu));
+                if (!incoming_pdu_list)
+                {
+                    perror("Failed to allocate memory for PDUs");
+                    exit(2);
+                }
+                incoming_pdu_list[i_pdu_count] = receivedPDU;
+                i_pdu_count++;
+                }
+
+                handlePrint(&receivedPDU);
 
                 lastTime = clock(); // Reset the timer
             }
             else //! TIMEOUT CONDITION \/ \/ \/
             {
-                printf("No message received for %d seconds.\n", TIMEOUT_TICKS);
+                printf("No message received for %d seconds. MAX S %d\n", TIMEOUT_TICKS, Correct_PDU_count);
+
             }
 
             currentTime = clock();
@@ -144,21 +169,23 @@ int main(int argc, char *argv[])
         } while (receivedPDU.type != 'F' && receivedPDU.type != 'E');
 
         //* ----------------- After While Loop of Receiving Packets (filled incoming_pdu_list buffer) -----------
-        
-        struct pdu* cleaned_pdu = validate_pdu_list(incoming_pdu_list, i_pdu_count);
 
-        if (i_pdu_count > 0) {
-            const char* output_filename = "output_file.bin";
-            int result = rebuild_file_from_pdus(output_filename, cleaned_pdu, i_pdu_count);
-            if (result != 0) {
+        //struct pdu *cleaned_pdu = validate_pdu_list(incoming_pdu_list, i_pdu_count);
+
+        if (i_pdu_count > 0)
+        {
+            const char *output_filename = "QUZ.mp4";
+            int result = rebuild_file_from_pdus(output_filename, incoming_pdu_list, i_pdu_count);
+            if (result != 0)
+            {
                 fprintf(stderr, "Failed to rebuild file from PDUs\n");
-            } else {
+            }
+            else
+            {
                 printf("File successfully rebuilt from PDUs\n");
             }
         }
-        
     }
-
 
     close(sock);
     return 0;

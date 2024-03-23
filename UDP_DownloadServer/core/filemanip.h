@@ -15,8 +15,18 @@ struct pdu {
     char data[PDU_DATA_SIZE];
 };
 
+
+//Helpers 
+
+uint32_t get_pdu_seq_num(struct pdu *pdu);
+void set_pdu_seq_num(struct pdu *pdu, uint32_t seq_num);
+
+// Loading & Rebuilding PDUs (to/from Files)
+
 struct pdu* load_file_into_pdus(const char* filename, int* pdu_count);
 int rebuild_file_from_pdus(const char* output_filename, struct pdu* pdu_list, int pdu_count);
+
+// Pipeline Functions
 
 struct pdu* validate_pdu_list(struct pdu* dirty_pdu_list, int pdu_count);
 

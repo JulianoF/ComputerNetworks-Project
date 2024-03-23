@@ -59,3 +59,8 @@ TCP-Client
 UDP-Server
 UDP-Client
 .vscode
+
+#media files
+
+*.mp4
+*.txt
