@@ -210,19 +210,15 @@ int main(void)
                     }
                 
                 
-                for (int i = 0; i < req->pdu_count; i++)
+                for (uint32_t i = 0; i < req->pdu_count; i++) //i is 32bit unsigned int to match pdu seq. num
                 {
 
                     struct pdu *sending_pdu = &req->pdu_list[i];
                     int pdu_length = sizeof(*sending_pdu);
 
-
                     uint32_t seq_num = get_pdu_seq_num(sending_pdu);
 
-                    char dat[97];
-
                     printf("\n[UDP-Serv] : SQ: %u, %c\n", seq_num, sending_pdu->type);
-
 
                     if (sendto(s, sending_pdu, pdu_length, 0, (struct sockaddr *)&incoming_socket_ADDR, alen) == -1)
                     {

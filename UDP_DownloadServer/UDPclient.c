@@ -91,8 +91,7 @@ int main(int argc, char *argv[])
             break; // Exit loop on input error or EOF
         }
 
-        // Set the PDU type
-        sentPDU.type = 'C';
+        sentPDU.type = 'C'; // msg req
 
         // Remove possible newline character
         sentPDU.data[strcspn(sentPDU.data, "\n")] = 0;
@@ -117,10 +116,8 @@ int main(int argc, char *argv[])
         struct sequence_jump *mistake = NULL;
         size_t mistake_count = 0;
 
-
-
-char modified_filename[256];
-extract_filename(sentPDU.data, modified_filename, sizeof(modified_filename));
+        char modified_filename[256];
+        extract_filename(sentPDU.data, modified_filename, sizeof(modified_filename)); // Extract Filename out of MY request
 
         do
         {
@@ -134,7 +131,8 @@ extract_filename(sentPDU.data, modified_filename, sizeof(modified_filename));
 
             if (select_sockevent_return == -1) // Failed
             {
-                killclient("select() failed");
+                printf("Oops something went wrong please, try again or restart client application...");
+                break;
             }
             else if (select_sockevent_return) // Data is available, this won't block
             {
@@ -149,6 +147,10 @@ extract_filename(sentPDU.data, modified_filename, sizeof(modified_filename));
                 {
                     Correct_PDU_count = get_pdu_seq_num(&receivedPDU);
                 }
+                else if (receivedPDU.type == "E")
+                {
+                    break;
+                }
                 else
                 {
                     uint32_t seq_n = get_pdu_seq_num(&receivedPDU);
@@ -161,7 +163,7 @@ extract_filename(sentPDU.data, modified_filename, sizeof(modified_filename));
                     }
                     else if (SEQ_DIFF > 1 || 1 < SEQ_DIFF)
                     { // Adjusted for clarity
-                        printf("Jump_in_SQ_--\n");
+                        // printf("Jump_in_SQ_--\n");
 
                         // Resize the jumps array to accommodate one more sequence_jump
                         struct sequence_jump *temp = realloc(mistake, (mistake_count + 1) * sizeof(struct sequence_jump));
@@ -204,6 +206,8 @@ extract_filename(sentPDU.data, modified_filename, sizeof(modified_filename));
             currentTime = clock();
 
         } while (receivedPDU.type != 'F' && receivedPDU.type != 'E');
+
+        printf("EXITED DO WHILE ON CLIENT");
 
         //* ----------------- After While Loop of Receiving Packets (filled incoming_pdu_list buffer) -----------
 
@@ -254,16 +258,15 @@ extract_filename(sentPDU.data, modified_filename, sizeof(modified_filename));
         }
 
         //* Send OK to Server now:
-                struct pdu okPDU;
-                memset(&okPDU, 0, sizeof(okPDU));
-                okPDU.type = 'O';
-                printf("SENT OK");
-                // Send the error PDU to request missing sequence number
-                if (sendto(sock, &okPDU, sizeof(okPDU), 0, (struct sockaddr *)&serverAddr, addrLen) == -1)
-                {
-                    killclient("sendto() failed to ok ");
-                }
-    
+        struct pdu okPDU;
+        memset(&okPDU, 0, sizeof(okPDU));
+        okPDU.type = 'O';
+        printf("SENT OK");
+        // Send the error PDU to request missing sequence number
+        if (sendto(sock, &okPDU, sizeof(okPDU), 0, (struct sockaddr *)&serverAddr, addrLen) == -1)
+        {
+            killclient("sendto() failed to ok ");
+        }
 
         if (mistake_count > 0)
         {
@@ -307,7 +310,7 @@ extract_filename(sentPDU.data, modified_filename, sizeof(modified_filename));
             printf("Sorting Complete.\n");
         }
         if (i_pdu_count > 0)
-        {   
+        {
             printf("FNAME: %s", modified_filename);
             int result = rebuild_file_from_pdus(modified_filename, incoming_pdu_list, i_pdu_count);
             if (result != 0)
