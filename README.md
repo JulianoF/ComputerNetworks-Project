@@ -1,5 +1,8 @@
 # ComputerNetworks-Project
 
+<details>
+<summary style="font-size: 40px; font-weight: 500; cursor: pointer;"> Run Hello World TCP </summary>
+
 ## Running Hello TCP Server
 Go into the Directory HelloWorldTCP
 ```
@@ -15,9 +18,10 @@ If you are running the Client
 make client
 ./helloClient [PORT NUM]
 ```
+</details>
 
-<details>
-<summary style="font-size: 40px; font-weight: 500; cursor: pointer;"> TCP Download Server </summary>
+# TCP DOWNLOAD SERVER
+
 Go into the TCP_DownloadServer directory
 ```
 cd TCP_DownloadServer
@@ -56,10 +60,8 @@ Start server with your information
 ./TCP-Client [PORT] [IP ADDRESS]
 ```
 
-</details>
-
-<details>
-<summary style="font-size: 40px; font-weight: 500; cursor: pointer;"> UDP Download Server </summary>
+---
+# UDP DOWNLOAD SERVER
 
 ## Build Both UDP Client & Servers:
 
@@ -82,5 +84,3 @@ Start server with your information
 `./UDP-Client 127.0.0.1` in a second terminal window
 
 **127.0.0.1** could also be **0.0.0.0**
-
-</details>
